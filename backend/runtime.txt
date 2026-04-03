@@ -1,1 +1,1 @@
-echo "python-3.11.0" > backend/runtime.txt
+echo "3.11" > backend/runtime.txt
