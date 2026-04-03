@@ -2,7 +2,7 @@
    NukeNER_VIZ — app.js
    ═══════════════════════════════════════════════════════ */
 
-const API = (window.API_BASE || "http://localhost:5000") + "/api";
+const API = "https://nukenerviz.up.railway.app/api";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state = {
