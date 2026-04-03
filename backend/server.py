@@ -550,6 +550,8 @@ def serve_index():
     return "Frontend not found. Serve the /frontend folder separately.", 404
 
 
+init_db()  # always run on startup (needed for gunicorn)
+
 if __name__ == "__main__":
     init_db()
     print("✅  DB initialised:", DB_PATH)
