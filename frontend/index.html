@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NukeNER_VIZ</title>
+<link rel="stylesheet" href="style.css">
+<!-- Change API_BASE if your backend runs elsewhere -->
+<script>window.API_BASE = "http://localhost:5000";</script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     PROJECT PICKER MODAL
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal glass">
+    <div class="modal-head">
+      <h2>☢️ NukeNER_VIZ</h2>
+      <button class="modal-close" type="button" onclick="hideModal()" aria-label="Close">×</button>
+    </div>
+    <p>Upload a new file to create a project, or open an existing one.<br>
+       Your annotations are saved to the server and shared with your team.</p>
+
+    <!-- User name -->
+    <input class="modal-input" id="userName" placeholder="Your name (required to annotate)">
+
+    <!-- Upload new -->
+    <input class="modal-input" id="newProjectName" placeholder="Project name (optional)">
+    <div class="modal-row">
+      <input class="modal-input" id="ownerEmail" placeholder="Your email (for invites)" style="flex:1">
+      <label class="btn btn-primary" style="cursor:pointer;white-space:nowrap">
+        <input type="file" id="uploadFileInput" accept=".csv,.json,.tsv,.txt" style="display:none">
+        📂 Upload File
+      </label>
+    </div>
+    <div id="uploadStatus" style="font-size:11.5px;color:var(--text-2);margin-top:6px;min-height:16px"></div>
+
+    <div class="modal-or">— or open existing —</div>
+
+    <!-- Existing project list -->
+    <div class="project-list" id="projectList">
+      <div class="no-data" style="padding:20px">Loading projects…</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN APP SHELL
+══════════════════════════════════════════════════════ -->
+<div class="shell">
+
+  <!-- ── Topbar ── -->
+  <div class="topbar glass">
+    <div class="topbar-icon">🏷️</div>
+    <div>
+      <div class="topbar-title">NukeNER_VIZ</div>
+      <div class="topbar-sub" id="projectSubtitle">No project open</div>
+    </div>
+
+    <div class="topbar-right">
+      <!-- Stats chips -->
+      <div class="stat-chips" id="statChips" style="display:none">
+        <div class="stat-chip"><strong id="sDoc">0</strong> docs</div>
+        <div class="stat-chip"><strong id="sSent">0</strong> sentences</div>
+        <div class="stat-chip"><strong id="sEnt">0</strong> entities</div>
+        <div class="stat-chip"><strong id="sType">0</strong> types</div>
+      </div>
+
+      <!-- Current user -->
+      <div class="user-pill" id="userPill" style="display:none" onclick="showModal()">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <span id="userPillName">You</span>
+      </div>
+
+      <!-- Switch project -->
+      <button class="btn btn-ghost btn-sm" onclick="showModal(); loadProjectList()">⊕ Projects</button>
+    </div>
+  </div>
+
+  <!-- ── Body row ── -->
+  <div class="body-row">
+
+    <!-- ══ Sidebar ══ -->
+    <div class="sidebar">
+
+      <!-- Doc list -->
+      <div class="glass-sm sidebar-section" style="flex:1">
+        <div class="section-header">
+          Documents
+          <span class="badge" id="docCountBadge">0</span>
+        </div>
+        <div class="doc-list" id="docList"></div>
+      </div>
+
+      <!-- Legend -->
+      <div class="glass-sm sidebar-section" id="legendCard" style="display:none;flex-shrink:0">
+        <div class="section-header">
+          Entity Types
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm" onclick="selectAllLabels()"  style="padding:2px 8px;font-size:10px">All</button>
+            <button class="btn btn-ghost btn-sm" onclick="deselectAllLabels()" style="padding:2px 8px;font-size:10px">None</button>
+          </div>
+        </div>
+        <div class="legend-tags" id="legendItems"></div>
+      </div>
+
+    </div><!-- /sidebar -->
+
+    <!-- ══ Main panel ══ -->
+    <div class="main">
+      <div class="glass" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden">
+
+        <!-- Titlebar -->
+        <div class="main-titlebar" id="mainTitlebar" style="display:none">
+          <div class="main-doc-title" id="mainDocTitle">—</div>
+          <div class="main-doc-badge" id="mainDocBadge"></div>
+          <div class="progress-chip" id="progressChip">0/0 reviewed</div>
+
+          <!-- Tab bar -->
+          <div class="tab-bar" style="margin-left:auto">
+            <button class="tab-btn active" data-tab="annotate" onclick="showTab('annotate')">Annotate</button>
+            <button class="tab-btn"        data-tab="metrics"  onclick="showTab('metrics')">Metrics</button>
+            <button class="tab-btn"        data-tab="team"     onclick="showTab('team')">Team</button>
+          </div>
+        </div>
+
+        <!-- Scrollable content -->
+        <div class="main-scroll" id="mainScroll">
+
+          <!-- Welcome -->
+          <div class="welcome" id="welcomeState">
+            <div class="welcome-icon">✦</div>
+            <h2>No project open</h2>
+            <p>Create or open a project using the Projects button above,<br>
+               or drag &amp; drop a CSV / JSON file anywhere.</p>
+            <div class="drop-hint-box">
+              <div class="drop-hint-section">CSV</div>
+              doc_id, sentence_id, sentence_text, entities<br>
+              entities: [{'text':'...','label':'...'}]<br><br>
+              <div class="drop-hint-section">JSON — flat array</div>
+              [{"doc_id":"...","sentence_text":"...","entities":[...]}]<br><br>
+              <div class="drop-hint-section">JSON — nested object</div>
+              {"doc_id":{"sent_id":{"text":"...","entities":[...]}}}
+            </div>
+          </div>
+
+          <!-- Annotate tab: sentence pane -->
+          <div id="sentencePane"></div>
+
+          <!-- Metrics tab -->
+          <div id="metricsPanel"></div>
+
+          <!-- Team tab -->
+          <div id="teamPanel"></div>
+
+        </div><!-- /main-scroll -->
+      </div>
+    </div><!-- /main -->
+
+  </div><!-- /body-row -->
+</div><!-- /shell -->
+
+<script src="app.js"></script>
+</body>
+</html>
