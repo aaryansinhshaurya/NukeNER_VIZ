@@ -25,7 +25,7 @@ from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # allow frontend on any origin during dev
+CORS(app, origins=["https://nuke-ner-viz.vercel.app"])  # allow frontend on any origin during dev
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "nukener_viz.db")
 
